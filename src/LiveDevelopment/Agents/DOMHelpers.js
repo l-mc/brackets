@@ -1,35 +1,33 @@
 /*
- * Copyright (c) 2012 Adobe Systems Incorporated. All rights reserved.
- *  
+ * Copyright (c) 2012 - present Adobe Systems Incorporated. All rights reserved.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *  
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
-
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, forin: true, maxerr: 50, regexp: true */
-/*global define, $ */
+/*jslint regexp: true */
 
 /**
  * DOMHelpers is a collection of functions used by the DOMAgent exports `eachNode(src, callback)`
  */
 define(function DOMHelpersModule(require, exports, module) {
-    'use strict';
+    "use strict";
 
     /** Test if the given character is a quote character
      * {char} source character
@@ -117,7 +115,7 @@ define(function DOMHelpersModule(require, exports, module) {
      */
     function _findTag(src, skip) {
         var from, to, inc;
-        from = _find(src, [/<[a-z!\/]/, 2], skip);
+        from = _find(src, [/<[a-z!\/]/i, 2], skip);
         if (from < 0) {
             return null;
         }
@@ -125,10 +123,14 @@ define(function DOMHelpersModule(require, exports, module) {
             // html comments
             to = _find(src, "-->", from + 4);
             inc = 3;
-        } else if (src.substr(from, 7) === "<script") {
+        } else if (src.substr(from, 7).toLowerCase() === "<script") {
             // script tag
-            to = _find(src, "</script>", from + 7);
+            to = _find(src.toLowerCase(), "</script>", from + 7);
             inc = 9;
+        } else if (src.substr(from, 6).toLowerCase() === "<style") {
+            // style tag
+            to = _find(src.toLowerCase(), "</style>", from + 6);
+            inc = 8;
         } else {
             to = _find(src, ">", from + 1, true);
             inc = 1;
@@ -145,8 +147,8 @@ define(function DOMHelpersModule(require, exports, module) {
     function _extractAttributes(content) {
 
         // remove the node name and the closing bracket and optional slash
-        content = content.replace(/^<\S+\s*/, '');
-        content = content.replace(/\s*\/?>$/, '');
+        content = content.replace(/^<\S+\s*/, "");
+        content = content.replace(/\s*\/?>$/, "");
         if (content.length === 0) {
             return;
         }
@@ -205,7 +207,13 @@ define(function DOMHelpersModule(require, exports, module) {
             }
 
             // closed node (/ at the end)
-            if (content[content.length - 2] === '/') {
+            if (content[content.length - 2] === "/") {
+                payload.closed = true;
+            }
+
+            // Special handling for script/style tag since we've already collected
+            // everything up to the end tag.
+            if (payload.nodeName === "SCRIPT" || payload.nodeName === "STYLE") {
                 payload.closed = true;
             }
         }
@@ -220,7 +228,6 @@ define(function DOMHelpersModule(require, exports, module) {
     function eachNode(src, callback) {
         var index = 0;
         var text, range, length, payload;
-        var x = 0;
         while (index < src.length) {
 
             // find the next tag

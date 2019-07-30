@@ -1,33 +1,31 @@
 /*
- * Copyright (c) 2012 Adobe Systems Incorporated. All rights reserved.
- *  
+ * Copyright (c) 2012 - present Adobe Systems Incorporated. All rights reserved.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *  
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50*/
-/*global $, define, brackets, FileError */
-
 define(function (require, exports, module) {
-    'use strict';
-    
-    var Async = require("utils/Async");
+    "use strict";
+
+    var Async           = require("utils/Async"),
+        FileSystemError = require("filesystem/FileSystemError");
 
     /**
      * @private
@@ -35,49 +33,50 @@ define(function (require, exports, module) {
      */
     function _browserErrToFileError(err) {
         if (err === brackets.fs.ERR_NOT_FOUND) {
-            return FileError.NOT_FOUND_ERR;
+            return FileSystemError.NOT_FOUND;
         }
-        
-        // All other errors are mapped to the generic "security" error
-        return FileError.SECURITY_ERR;
+
+        // All other errors are mapped to the generic "unknown" error
+        return FileSystemError.UNKNOWN;
     }
-    
+
     var liveBrowserOpenedPIDs = [];
-    var liveBrowserUserDataDir = "";
 
     /** openLiveBrowser
-     *
-     * @param {string} url
-     * @return {$.Promise} 
+     * Open the given URL in the user's system browser, optionally enabling debugging.
+     * @param {string} url The URL to open.
+     * @param {boolean=} enableRemoteDebugging Whether to turn on remote debugging. Default false.
+     * @return {$.Promise}
      */
     function openLiveBrowser(url, enableRemoteDebugging) {
         var result = new $.Deferred();
-        
-        brackets.app.openLiveBrowser(url, enableRemoteDebugging, function onRun(err, pid) {
+
+        brackets.app.openLiveBrowser(url, !!enableRemoteDebugging, function onRun(err, pid) {
             if (!err) {
-                liveBrowserOpenedPIDs.push(pid);
+                // Undefined ids never get removed from list, so don't push them on
+                if (pid !== undefined) {
+                    liveBrowserOpenedPIDs.push(pid);
+                }
                 result.resolve(pid);
             } else {
                 result.reject(_browserErrToFileError(err));
             }
-        }, liveBrowserUserDataDir);
-        
+        });
+
         return result.promise();
     }
-    
+
     /** closeLiveBrowser
      *
      * @return {$.Promise}
      */
     function closeLiveBrowser(pid) {
         var result = new $.Deferred();
-        
+
         if (isNaN(pid)) {
             pid = 0;
         }
-        console.log("calling to close: " + pid);
         brackets.app.closeLiveBrowser(function (err) {
-            console.log("called closing: " + pid + " with err: " + err);
             if (!err) {
                 var i = liveBrowserOpenedPIDs.indexOf(pid);
                 if (i !== -1) {
@@ -88,10 +87,10 @@ define(function (require, exports, module) {
                 result.reject(_browserErrToFileError(err));
             }
         }, pid);
-        
+
         return result.promise();
     }
-    
+
     /** closeAllLiveBrowsers
      * Closes all the browsers that were tracked on open
      * TODO: does not seem to work on Windows
@@ -100,23 +99,20 @@ define(function (require, exports, module) {
     function closeAllLiveBrowsers() {
         //make a copy incase the array is edited as we iterate
         var closeIDs = liveBrowserOpenedPIDs.concat();
-        return Async.doInParallel(closeIDs, closeLiveBrowser, false);
+        return Async.doSequentially(closeIDs, closeLiveBrowser, false);
     }
-    
-    /** _setLiveBrowserUserDataDir
-     * For Unit Tests only, changes the default dir the browser use for it's user data
-     * @return {$.Promise}
+
+    /**
+     * Opens a URL in the system default browser
      */
-    function _setLiveBrowserUserDataDir(path) {
-        liveBrowserUserDataDir = path;
+    function openURLInDefaultBrowser(url) {
+        brackets.app.openURLInDefaultBrowser(url);
     }
-    
-    
+
 
     // Define public API
     exports.openLiveBrowser = openLiveBrowser;
     exports.closeLiveBrowser = closeLiveBrowser;
     exports.closeAllLiveBrowsers = closeAllLiveBrowsers;
-    //API for Unit Tests
-    exports._setLiveBrowserUserDataDir = _setLiveBrowserUserDataDir;
+    exports.openURLInDefaultBrowser = openURLInDefaultBrowser;
 });

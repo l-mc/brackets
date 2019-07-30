@@ -1,40 +1,36 @@
 /*
- * Copyright (c) 2012 Adobe Systems Incorporated. All rights reserved.
- *  
+ * Copyright (c) 2012 - present Adobe Systems Incorporated. All rights reserved.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *  
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
-
-
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, forin: true, maxerr: 50, regexp: true */
-/*global define, $ */
 
 /**
  * NetworkAgent tracks all resources loaded by the remote debugger. Use
  * `wasURLRequested(url)` to query whether a resource was loaded.
  */
 define(function NetworkAgent(require, exports, module) {
-    'use strict';
+    "use strict";
 
     var Inspector = require("LiveDevelopment/Inspector/Inspector");
 
-    var _urlRequested; // url -> request info
+    var _urlRequested = {}; // url -> request info
 
     /** Return the URL without the query string
      * @param {string} URL
@@ -54,27 +50,54 @@ define(function NetworkAgent(require, exports, module) {
         return _urlRequested && _urlRequested[url];
     }
 
+    function _logURL(url) {
+        _urlRequested[_urlWithoutQueryString(url)] = true;
+    }
+
     // WebInspector Event: Network.requestWillBeSent
-    function _onRequestWillBeSent(res) {
+    function _onRequestWillBeSent(event, res) {
         // res = {requestId, frameId, loaderId, documentURL, request, timestamp, initiator, stackTrace, redirectResponse}
-        var url = _urlWithoutQueryString(res.request.url);
-        _urlRequested[url] = true;
+        _logURL(res.request.url);
+    }
+
+    function _reset() {
+        _urlRequested = {};
+    }
+
+    // WebInspector Event: Page.frameNavigated
+    function _onFrameNavigated(event, res) {
+        // res = {frame}
+        // Clear log when navigating to a new page, but not if an iframe was loaded
+        if (!res.frame.parentId) {
+            _reset();
+        }
+        _logURL(res.frame.url);
+    }
+
+    /**
+     * Enable the inspector Network domain
+     * @return {jQuery.Promise} A promise resolved when the Network.enable() command is successful.
+     */
+    function enable() {
+        return Inspector.Network.enable();
     }
 
     /** Initialize the agent */
     function load() {
-        _urlRequested = {};
-        Inspector.Network.enable();
-        Inspector.on("Network.requestWillBeSent", _onRequestWillBeSent);
+        Inspector.Page.on("frameNavigated.NetworkAgent", _onFrameNavigated);
+        Inspector.Network.on("requestWillBeSent.NetworkAgent", _onRequestWillBeSent);
     }
 
     /** Unload the agent */
     function unload() {
-        Inspector.off("Network.requestWillBeSent", _onRequestWillBeSent);
+        _reset();
+        Inspector.Page.off(".NetworkAgent");
+        Inspector.Network.off(".NetworkAgent");
     }
 
     // Export public functions
     exports.wasURLRequested = wasURLRequested;
+    exports.enable = enable;
     exports.load = load;
     exports.unload = unload;
 });

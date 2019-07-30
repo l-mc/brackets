@@ -1,5 +1,4 @@
-
-// Copyright (c) 2012 Adobe Systems Incorporated. All rights reserved.
+// Copyright (c) 2012 - present Adobe Systems Incorporated. All rights reserved.
 //  
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"), 
@@ -28,41 +27,60 @@
 @font-weight-light: 200;
 
 
-/* SourceSansRegular */
+/* SourceSansPro Regular */
 @font-face {
-    font-family: 'SourceSans';
-    src: url('fonts/SourceSans/SourceSans-Regular.ttf');
+    font-family: 'SourceSansPro';
+    src: url('fonts/SourceSansPro/SourceSansPro-Regular.ttf');
     font-weight: normal;
     font-style: normal;
 }
 
 
-/* SourceSansLight */
+/* SourceSansPro Light */
 @font-face {
-    font-family: 'SourceSans';
-    src: url('fonts/SourceSans/SourceSans-Light.ttf');
+    font-family: 'SourceSansPro';
+    src: url('fonts/SourceSansPro/SourceSansPro-Light.ttf');
     font-weight: @font-weight-light;
     font-style: normal;
 }
 
 
-/* SourceSansSemibold */
+/* SourceSansPro Semibold */
 @font-face {
-    font-family: 'SourceSans';
-    src: url('fonts/SourceSans/SourceSans-Semibold.ttf');
+    font-family: 'SourceSansPro';
+    src: url('fonts/SourceSansPro/SourceSansPro-Semibold.ttf');
     font-weight: @font-weight-semibold;
     font-style: normal;
 }
 
-/* SourceSansItalic */
+/* SourceSansPro Italic */
 @font-face {
-    font-family: 'SourceSans';
-    src: url('fonts/SourceSans/sourcesans-it-webfont.ttf');
+    font-family: 'SourceSansPro';
+    src: url('fonts/SourceSansPro/SourceSansPro-It.ttf');
     font-weight: normal;
     font-style: italic;
 }
 
 
+/* SourceCodePro Regular */
+@font-face {
+    font-family: 'SourceCodePro';
+    src: url('fonts/SourceCodePro/SourceCodePro-Regular.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* SourceCodePro Medium */
+@font-face {
+    font-family: 'SourceCodePro-Medium';
+    src: url('fonts/SourceCodePro/SourceCodePro-Medium.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Font Stacks */
 
-@fontstack-sans-serif: 'SourceSans', Helvetica, Arial, sans-serif;
+@sansFontFamily: 'SourceSansPro', Helvetica, Arial, "Meiryo UI", "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+
+@sourceFontFamily: "SourceCodePro", "Menlo Regular", Consolas, Inconsolata, "Vera Sans", "Lucida Console", Courier, fixed;
+@sourceFontFamily-Medium: "SourceCodePro-Medium", "ＭＳ ゴシック", "MS Gothic", monospace;
